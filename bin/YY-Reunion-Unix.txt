@@ -1,0 +1,2 @@
+1. Install Neko VM https://nekovm.org/download/
+2. Use by running as "YY-Reunion <yyp path>" from terminal or by placing the tool into the project's directory and running it from there.
