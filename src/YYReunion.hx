@@ -17,7 +17,9 @@ class YYReunion {
 	static function impl(yypPath:String) {
 		var yypName = Path.withoutDirectory(yypPath);
 		var dir = Path.directory(yypPath);
+		Sys.print('Loading `$yypPath`...');
 		var yyp:YyProject = Json.parse(File.getContent(yypPath));
+		Sys.println(" OK!");
 		//
 		var purgeMap:Map<YyGUID, String> = new Map();
 		//
@@ -51,7 +53,19 @@ class YYReunion {
 		while (rpi < yyp.resources.length) {
 			var rp = yyp.resources[rpi];
 			var rk = rp.Key;
+			if (rk.needsLowerCase()) {
+				Sys.println('Changing `$rk` to lowercase.');
+				rp.Key = rk = rk.toLowerCase();
+				yypChanged = true;
+			}
+			//
 			var rv:YyProjectResourceValue = rp.Value;
+			if (rv.id.needsLowerCase()) {
+				Sys.println('Changing `${rv.id}` to lowercase.');
+				rv.id = rv.id.toLowerCase();
+				yypChanged = true;
+			}
+			//
 			var rvRel = rv.resourcePath;
 			var rvFull = Path.join([dir, rvRel]);
 			if (!FileSystem.exists(rvFull)) {
@@ -70,6 +84,7 @@ class YYReunion {
 					Sys.println('`$rvRel` is malformed ($x).');
 					continue;
 				};
+				//
 				var vx = new YyViewExt(rk, rv, vd);
 				if (vd.isDefaultView) {
 					if (rootView == null) {
@@ -92,9 +107,18 @@ class YYReunion {
 		// add missing views:
 		for (vrel in FileSystem.readDirectory(Path.join([dir, "views"]))) {
 			if (Path.extension(vrel) != "yy") continue;
-			var vid_s = Path.withoutExtension(vrel);
-			if (!YyGUID.test.match(vid_s)) continue;
-			var vid:YyGUID = cast vid_s;
+			var vid = YyGUID.fromString(Path.withoutExtension(vrel));
+			if (vid == null) continue;
+			if (vid.needsLowerCase()) {
+				var vrelLq = vrel.toLowerCase();
+				Sys.println('Renaming `$vrel` to be lowercase.');
+				var vrel0 = Path.join([dir, 'views', vrel]);
+				var vrel1 = Path.join([dir, 'views', vrelLq]);
+				var vrel2 = vrel1 + ".tmp"; // Windows doesn't want to change casing?
+				FileSystem.rename(vrel0, vrel1);
+				vrel = vrelLq;
+				vid = vid.toLowerCase();
+			}
 			if (viewMap.exists(vid)) continue;
 			//
 			var rvRel = 'views\\' + vrel;
@@ -440,7 +464,24 @@ class YyViewExt extends YyResourceExt {
 	public function new(k:YyGUID, v:YyProjectResourceValue, view:YyView) {
 		super(k, v);
 		this.view = view;
-		ignore = view.filterType == "GMOptions" || view.isDefaultView;
+		if (view.id.needsLowerCase()) {
+			Sys.println('Changing `${view.id}` `${view.folderName}` to lowercase.');
+			view.id = view.id.toLowerCase();
+			changed = true;
+		}
+		if (view.name.needsLowerCase()) {
+			Sys.println('Changing `${view.name}` `${view.folderName}` to lowercase.');
+			view.name = view.name.toLowerCase();
+			changed = true;
+		}
+		for (i in 0 ... view.children.length) {
+			var vc = view.children[i];
+			if (vc.needsLowerCase()) {
+				Sys.println('Changing `${vc}` reference in `${view.id}` `${view.folderName}` to lowercase.');
+				view.children[i] = vc.toLowerCase();
+			}
+		}
+		ignore = StringTools.endsWith(view.filterType, "Options") || view.isDefaultView;
 	}
 	
 	override public function getName():String {

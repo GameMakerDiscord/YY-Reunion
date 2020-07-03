@@ -9,6 +9,7 @@ abstract YyGUID(String) to String {
 		var h = "[0-9a-fA-F]";
 		new EReg('^$h{8}-$h{4}-$h{4}-$h{4}-$h{12}$', '');
 	};
+	public static var testUQ:EReg = ~/[A-F]/;
 	public static inline var zero:YyGUID = cast "00000000-0000-0000-0000-000000000000";
 	public static inline var sizeof:Int = 36;
 	static function create() {
@@ -42,5 +43,16 @@ abstract YyGUID(String) to String {
 	}
 	public inline function toString() {
 		return this;
+	}
+	
+	public inline function toLowerCase():YyGUID {
+		return cast this.toLowerCase();
+	}
+	public inline function needsLowerCase():Bool {
+		return testUQ.match(this);
+	}
+	
+	public static function fromString(s:String):Null<YyGUID> {
+		return test.match(s) ? (cast s) : null;
 	}
 }
